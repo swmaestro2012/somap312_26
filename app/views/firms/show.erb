@@ -1,0 +1,199 @@
+<nav>
+  <div id="jCrumbs" class="breadCrumb module">
+    <ul>
+      <li>
+        <a href="#"><i class="icon-home"></i> 투자자별 요약</a>
+      </li>
+      <li>
+        <a href="#">종목별 상세보기</a>
+      </li>
+    </ul>
+  </div>
+</nav>
+<div class="row-fluid">
+  <div class="span12">
+    <h2 class="heading"><%= @stock_code.name %> <small><%= @symbol %></small></h2>
+    <div class="tab-content">
+      <div class="row-fluid">
+        <div class="span9">
+          <h4 class="heading">종목추이</h4>
+          <div id="container1">읽는중...</div>
+        </div>
+        <div class="span3">
+          <h4 class="heading">투자정보</h4>
+          <dl class="dl-summary">
+            <dt>종목이름</dt>
+            <dd><%= @stock_code.name %></dd>
+            <dt>주당순이익</dt>
+            <dd><%= @firm_data.eps %></dd>
+            <dt>PER</dt>
+            <dd><%= @firm_data.per %></dd>
+            <dt>주당매출액</dt>
+            <dd><%= @firm_data.sps %></dd>
+          </dl>
+        </div>
+      </div>
+      <div class="row-fluid">
+        <div class="span12">
+          <h4 class="heading">종목시세변화</h4>
+          <div id="container2">읽는중...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script type="text/javascript">
+    $(function() {
+
+        Highcharts.setOptions({
+
+            lang: {
+                months: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
+                weekdays: ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'],
+                /*rangeSelectorFrom : '에서',
+                rangeSelectorTo : '까지',       */
+
+            }
+        });
+        $.getJSON('/signals/<%= @symbol %>.json', function(signal_data) {
+            _entry = [];
+            _exit = [];
+
+            console.log(signal_data);
+
+            for(var s in signal_data) {
+                signal = signal_data[s];
+                console.log(signal);
+
+                _entry.push({x : signal.entry_date,
+                    title : signal.trading_strategy_name[0],
+                    text : "[" + signal.trading_strategy_name + "] 진입"});
+
+                if(signal.exit_date == null) signal.exit_date = Date.now();
+
+                _exit.push({x : signal.exit_date,
+                    title : signal.trading_strategy_name[0],
+                    text : "[" + signal.trading_strategy_name + "] 제외"});
+
+
+
+            }
+
+            console.log(_entry);
+            console.log(_exit);
+
+            $.getJSON('/daily_stocks/<%= @symbol %>.json', function(data) {
+
+
+                // Create the chart
+                chart1 = new Highcharts.StockChart({
+                    chart : {
+                        renderTo : $('#container1')[0],
+                    },
+
+                    rangeSelector : {
+                        selected : 4
+                    },
+                    /*
+                     title : {
+                     text : 'LG디스플레이 진입/이탈 시점보기'
+                     },
+                     */
+
+                    credits: {
+                        enabled: false
+                    },
+                    series : [{
+                        name : '..',
+                        data : data,
+                        id : 'dataseries',
+                        tooltip : {
+                            valueDecimals: 0
+                        }
+                    }, {
+                        type : 'flags',
+                        data : _entry,
+                        onSeries : 'dataseries',
+                        shape : 'squarepin',
+                        fillColor : '#A73942',
+
+                        width : 16,
+                        style : {// text style
+                            color : 'white'
+                        },
+                    }, {
+                        type : 'flags',
+                        data : _exit,
+                        color : '#4F76A3',
+                        fillColor : '#4124DB',
+                        onSeries : 'dataseries',
+                        width : 16,
+                        style : {// text style
+                            color : 'white'
+                        },
+                    }]
+                });
+            });
+            //$('#_tab3').click(function () {
+
+
+            $.getJSON('/day_candles/<%= @symbol %>.json', function(data) {
+
+                // create the chart
+                var chart2 = new Highcharts.StockChart({
+                    chart : {
+                        renderTo : $('#container2')[0] ,
+                        width : 850
+                    },
+
+
+                    credits: {
+                        enabled: false
+                    },
+
+                    rangeSelector : {
+                        selected : 1
+                    },
+
+                    series : [{
+                        type : 'candlestick',
+                        name : '<%= @stock_code.name %>',
+                        data : data,
+                        dataGrouping : {
+                            units : [
+                                ['주', // unit name
+                                    [1] // allowed multiples
+                                ], [
+                                    'month',
+                                    [1, 2, 3, 4, 6]]
+                            ]
+                        }
+                    }, {
+                        type : 'flags',
+                        data : _entry,
+                        onSeries : 'dataseries',
+                        shape : 'squarepin',
+                        fillColor : '#A73942',
+
+                        width : 16,
+                        style : {// text style
+                            color : 'white'
+                        },
+                    }, {
+                        type : 'flags',
+                        data : _exit,
+                        color : '#4F76A3',
+                        fillColor : '#4124DB',
+                        onSeries : 'dataseries',
+                        width : 16,
+                        style : {// text style
+                            color : 'white'
+                        },
+                    }]
+                });
+            });
+        })
+
+        //});
+    });
+</script>
